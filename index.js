@@ -23,9 +23,9 @@ function createTextElement(text) {
     },
   };
 }
-// we will create a dom node for each child and append it to the container//
+// this creates a fiber for each eleemnt of the react and assigns it as 1 uit of work//
 
-function render(element, container) {
+function createDom(fiber) {
   //if it is a text, then first make it an object//
 
   const dom =
@@ -47,7 +47,29 @@ function render(element, container) {
     render(child, dom);
   });
 
-  container.appendChild(dom);
+  return dom
+}
+function render (element,container){
+
+}
+// here the main thread is being block unntil the whole code has run, so we break the code in small chunks//
+
+let nextUnitOfWOrk = null;
+
+function workLoop(deadline){
+  let shouldYield = false;
+
+  while(nextUnitOfWOrk && !shouldYield){
+    nextUnitOfWOrk = performUnitOfWork(nextUnitOfWOrk);
+    shouldYield = deadline.timeRemaining()< 1
+  }
+  requestIdleCallback(workLoop);
+}
+
+requestIdleCallback(workLoop);
+// to orgaize the code into chuks, we nedd to make them into fibres//
+function performUnitOfWork(nextUnitOfWOrk){
+   
 }
 
 // we will create our own method name so that the code will work as babel trnaspiles the code by the Rxt //
