@@ -49,18 +49,37 @@ function createDom(fiber) {
 
   return dom;
 }
+
+//this is so as to recursively call the fiber to append to dom//
+
+function commitRoot(){
+   commitWork(wipRoot.child);
+   wipRoot = null
+}
+function commitWork(fiber){
+  if (!fiber){
+    return
+  }
+  const domParent = fiber.parent.dom;
+  domParent.appendChild(fiber.dom)
+  commitWork(fiber.child)
+  commitWork(fiber.sibling)
+}
+
 //set the work unit to the root of the fiber//
 function render(element, container) {
-  nextUnitOfWOrk = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element],
     },
   };
+  nextUnitOfWOrk = wip
 }
 // here the main thread is being block unntil the whole code has run, so we break the code in small chunks//
 
 let nextUnitOfWOrk = null;
+let wipRoot = null;
 
 function workLoop(deadline) {
   let shouldYield = false;
@@ -69,20 +88,27 @@ function workLoop(deadline) {
     nextUnitOfWOrk = performUnitOfWork(nextUnitOfWOrk);
     shouldYield = deadline.timeRemaining() < 1;
   }
+  if(!nextUnitOfWOrk && wipRoot){
+    commitRoot()
+  }
   requestIdleCallback(workLoop);
 }
 
 requestIdleCallback(workLoop);
+
+
 // to orgaize the code into chuks, we nedd to make them into fibres//
+
+
 function performUnitOfWork(fiber) {
   //checks if the fiber has a parent, if it does than add the fiber to its parent//
+
   if(!fiber){
     createDom(fiber)
   }
-  if(fiber.parent){
-    fiber.parent.dom.appendChild(fiber.dom)
-  }
+  
   //add fibers child to tha fiber dom//
+
   const elements = fiber.props.children;
   let prevSibling = null;
   
@@ -106,6 +132,7 @@ function performUnitOfWork(fiber) {
     prevSibling =newFiber
   }
   //now we find the next unit of work//
+
   if(fiber.child){
     return fiber.child
   }
