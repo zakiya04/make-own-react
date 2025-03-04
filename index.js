@@ -29,9 +29,9 @@ function createDom(fiber) {
   //if it is a text, then first make it an object//
 
   const dom =
-    element.type == "text"
-      ? createTextElement(element)
-      : document.createElement(element.type);
+    fiber.type == "text"
+      ? document.createTextNode("")
+      : document.createElement(fiber.type);
 
   //properties of the element to be given to node//
 
@@ -47,29 +47,77 @@ function createDom(fiber) {
     render(child, dom);
   });
 
-  return dom
+  return dom;
 }
-function render (element,container){
-
+//set the work unit to the root of the fiber//
+function render(element, container) {
+  nextUnitOfWOrk = {
+    dom: container,
+    props: {
+      children: [element],
+    },
+  };
 }
 // here the main thread is being block unntil the whole code has run, so we break the code in small chunks//
 
 let nextUnitOfWOrk = null;
 
-function workLoop(deadline){
+function workLoop(deadline) {
   let shouldYield = false;
 
-  while(nextUnitOfWOrk && !shouldYield){
+  while (nextUnitOfWOrk && !shouldYield) {
     nextUnitOfWOrk = performUnitOfWork(nextUnitOfWOrk);
-    shouldYield = deadline.timeRemaining()< 1
+    shouldYield = deadline.timeRemaining() < 1;
   }
   requestIdleCallback(workLoop);
 }
 
 requestIdleCallback(workLoop);
 // to orgaize the code into chuks, we nedd to make them into fibres//
-function performUnitOfWork(nextUnitOfWOrk){
-   
+function performUnitOfWork(fiber) {
+  //checks if the fiber has a parent, if it does than add the fiber to its parent//
+  if(!fiber){
+    createDom(fiber)
+  }
+  if(fiber.parent){
+    fiber.parent.dom.appendChild(fiber.dom)
+  }
+  //add fibers child to tha fiber dom//
+  const elements = fiber.props.children;
+  let prevSibling = null;
+  
+  for(let i = 0; i < elements.length; i++){
+    const element = elements[i];
+
+    const newFiber = {
+      type : element.type,
+      props: element.props,
+      parent: fiber,
+      dom: null,
+    }
+
+    if(i === 0){
+      fiber.child = newFiber
+    }
+    else{
+      prevSibling.sibling = newFiber
+    }
+
+    prevSibling =newFiber
+  }
+  //now we find the next unit of work//
+  if(fiber.child){
+    return fiber.child
+  }
+  nextFiber = fiber;
+  while(nextFiber){
+
+    if(nextFiber.sibling){
+
+      return nextFiber.sibling
+    }
+    nextFiber = fiber.parent;
+  }
 }
 
 // we will create our own method name so that the code will work as babel trnaspiles the code by the Rxt //
